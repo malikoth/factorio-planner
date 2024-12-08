@@ -1,0 +1,68 @@
+arithmetic-combinator
+assembling-machine-1
+assembling-machine-2
+big-electric-pole
+boiler
+cargo-wagon
+chemical-plant
+constant-combinator
+decider-combinator
+display-panel
+electric-engine-unit
+electric-mining-drill
+# express-splitter
+# express-transport-belt
+# express-underground-belt
+# fast-inserter
+# fast-splitter
+# fast-transport-belt
+# fast-underground-belt
+firearm-magazine
+fluid-wagon
+gate
+gun-turret
+inserter
+landfill
+laser-turret
+locomotive
+long-handed-inserter
+medium-electric-pole
+offshore-pump
+oil-refinery
+piercing-rounds-magazine
+pipe
+pipe-to-ground
+power-switch
+programmable-speaker
+pump
+pumpjack
+radar
+rail
+rail-chain-signal
+rail-signal
+repair-pack
+selector-combinator
+small-lamp
+# splitter
+steel-chest
+steel-furnace
+stone-furnace
+stone-wall
+train-stop
+# transport-belt
+# underground-belt
+assembling-machine-3
+substation
+requester-chest
+beacon
+roboport
+active-provider-chest
+buffer-chest
+storage-chest
+passive-provider-chest
+logistic-robot
+construction-robot
+electric-furnace
+bulk-inserter
+solar-panel
+accumulator
