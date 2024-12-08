@@ -1,0 +1,9 @@
+iron-plate
+copper-plate
+steel-plate
+iron-gear-wheel
+stone-brick
+electronic-circuit
+advanced-circuit
+processing-unit
+battery

@@ -1,0 +1,6 @@
+rail
+landfill
+steel-furnace
+electric-furnace
+oil-refinery
+stone-wall
