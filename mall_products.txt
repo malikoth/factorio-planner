@@ -46,7 +46,7 @@ small-lamp
 # splitter
 steel-chest
 steel-furnace
-stone-furnace
+# stone-furnace
 stone-wall
 train-stop
 # transport-belt

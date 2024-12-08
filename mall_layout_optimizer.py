@@ -11,7 +11,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain
-from typing import Iterable
+from typing import ClassVar, Iterable
 
 
 def load_recipes():
@@ -76,6 +76,8 @@ def populated_list() -> list[str | None]:
 
 @dataclass
 class MallRow:
+    MAX_LANES: ClassVar[int] = 8
+
     class Side(Enum):
         TOP = "top"
         BOT = "bottom"
@@ -84,12 +86,15 @@ class MallRow:
     recipes_top: list[str] = field(default_factory=list)
     recipes_bot: list[str] = field(default_factory=list)
 
-    def get_side_range(self, side: Side | None) -> slice:
+    def __post_init__(self) -> None:
+        if len(self.ingredient_lanes) < self.MAX_LANES:
+            self.ingredient_lanes += [None] * (self.MAX_LANES - len(self.ingredient_lanes))
+
+    def get_side_range(self, side: Side) -> slice:
         if side == self.Side.TOP:
             return slice(0, 6)
         elif side == self.Side.BOT:
             return slice(2, 8)
-        return slice(0, 8)
 
     def get_recipes(self, side: Side) -> list[str]:
         if side == self.Side.TOP:
@@ -103,18 +108,14 @@ class MallRow:
         elif side == self.Side.BOT:
             self.recipes_bot.extend(recipes)
 
-    def get_ingredients(self, side: Side | None) -> tuple[str]:
+    def get_ingredients(self, side: Side) -> tuple[str]:
         return tuple(self.ingredient_lanes[self.get_side_range(side)])
 
-    def lane_indices(self, side: Side | None) -> Iterable[int]:
+    def lane_indices(self, side: Side) -> Iterable[int]:
         if side == self.Side.TOP:
             return [2, 3, 4, 5, 0, 1]
         if side == self.Side.BOT:
             return [2, 3, 4, 5, 6, 7]
-        return [2, 3, 4, 5, 0, 1, 6, 7]
-
-    def full(self, side: Side) -> bool:
-        return None not in self.get_ingredients(side)
 
     def count_available_lanes(self, side: Side) -> int:
         return self.get_ingredients(side).count(None)
@@ -133,66 +134,89 @@ class MallRow:
     def __str__(self):
         lines = []
         for i in [0, 1]:
-            lines.append(self.ingredient_lanes[i] or "")
+            lines.append(self.ingredient_lanes[i] or "----")
         for recipe in sorted(self.recipes_top):
             lines.append(f"    {recipe}")
         for i in [2, 3, 4, 5]:
-            lines.append(self.ingredient_lanes[i] or "")
+            lines.append(self.ingredient_lanes[i] or "----")
         for recipe in sorted(self.recipes_bot):
             lines.append(f"    {recipe}")
         for i in [6, 7]:
-            lines.append(self.ingredient_lanes[i] or "")
+            lines.append(self.ingredient_lanes[i] or "----")
         return "\n".join(lines)
 
 
+def find_best_ingredients(row_ingredients: list[str], pending_assignment: set[str]) -> tuple[tuple[str], list[str]]:
+    """Find the best ingredient(s) to add to one side of a MallRow
+
+    Also include the list of recipes enabled by the best ingredient(s) in the return
+    """
+    reduced_ingredients = defaultdict(list)
+
+    for recipe in pending_assignment:
+        reduced = tuple(sorted(set(get_ingredients_key(recipe)) - set(row_ingredients)))
+        existing_ingredients_used = len(recipes[recipe]) - len(reduced)
+
+        if row_ingredients.count(None) >= len(reduced):
+            reduced_ingredients[(existing_ingredients_used, reduced)].append(recipe)
+
+    if not reduced_ingredients:
+        return (), []
+
+    # Sort candidate ingredients by:
+    #   1. require the fewest new ingredients
+    #   2. use the most existing ingredients
+    #   3. enable the most number of new recipes
+    sorted_ingredients = sorted(
+        reduced_ingredients.keys(), key=lambda e: (len(e[1]), -e[0], -len(reduced_ingredients[e]))
+    )
+
+    return sorted_ingredients[0], reduced_ingredients[sorted_ingredients[0]]
+
+
+def sort_ingredients(
+    pending_assignment: set[str], rows: list[MallRow]
+) -> list[tuple[int, MallRow.Side, tuple[str], list[str]]]:
+    """Find candidates for an ingredient to add to a lane on each side of each row"""
+    best_by_row = []
+    for row_index, row in enumerate(rows):
+        for side, row_ingredients in row:
+            ingredients, new_recipes = find_best_ingredients(row_ingredients, pending_assignment)
+            if not new_recipes:
+                continue
+
+            best_by_row.append((row_index, side, ingredients, new_recipes))
+    return sorted(best_by_row, key=lambda e: (len(e[2][1]), -e[2][0], -len(e[3])))
+
+
+def initial_lanes() -> list[MallRow]:
+    row1 = MallRow(ingredient_lanes=["iron-plate", None, "iron-gear-wheel", "electronic-circuit"])
+    row2 = MallRow(ingredient_lanes=["stone", "stone-brick"])
+    return [row1, row2]
+
+
+def add_ingredients(sorted_ingredients, pending_assignment, rows) -> bool:
+    row_index, side, (existing_ingredients_used, reduced), recs = sorted_ingredients[0]
+    for ingredient in reduced:
+        rows[row_index].add_ingredient(side, ingredient)
+    rows[row_index].add_recipes(side, recs)
+
+    for recipe in recs:
+        pending_assignment.remove(recipe)
+
+
 def build_rows() -> dict:
-    rows = [MallRow(), MallRow()]
-    rows[0].ingredient_lanes[0] = "iron-plate"
-    # rows[0].ingredient_lanes[1] = "iron-plate"
-    rows[0].ingredient_lanes[2] = "iron-gear-wheel"
-    rows[0].ingredient_lanes[3] = "electronic-circuit"
-    rows[1].ingredient_lanes[0] = "stone"
-    rows[1].ingredient_lanes[1] = "stone-brick"
+    rows = initial_lanes()
     pending_assignment = set(products)
 
     while pending_assignment:
-        best_by_row = []
-        for row_index, row in enumerate(rows):
-            for side, row_ingredients in row:
-                if row.full(side):
-                    continue
-
-                reduced_ingredients = defaultdict(list)
-                for recipe in pending_assignment:
-                    reduced = tuple(sorted(set(get_ingredients_key(recipe)) - set(row_ingredients)))
-                    existing_ingredients_used = len(recipes[recipe]) - len(reduced)
-                    reduced_ingredients[(existing_ingredients_used, reduced)].append(recipe)
-                sorted_ingredients = sorted(
-                    reduced_ingredients.keys(), key=lambda e: (len(e[1]), -e[0], -len(reduced_ingredients[e]))
-                )
-                best_by_row.append((row_index, side, sorted_ingredients[0], reduced_ingredients[sorted_ingredients[0]]))
-
-        sorted_ingredients = sorted(best_by_row, key=lambda e: (len(e[2][1]), -e[2][0], -len(e[3])))
-
-        found_space = False
-        for row_index, side, (existing_ingredients_used, reduced), recs in sorted_ingredients:
-            if (
-                len(reduced) <= rows[row_index].count_available_lanes(side)
-                # and len(rows[row_index].get_recipes(side)) < 8
-            ):
-                found_space = True
-                for ingredient in reduced:
-                    rows[row_index].add_ingredient(side, ingredient)
-                rows[row_index].add_recipes(side, recs)
-
-                for recipe in recs:
-                    pending_assignment.remove(recipe)
-                break
-
-        if not found_space:
+        sorted_ingredients = sort_ingredients(pending_assignment, rows)
+        if sorted_ingredients:
+            add_ingredients(sorted_ingredients, pending_assignment, rows)
+        else:
             rows.append(MallRow())
 
-        # Rebalance rows if possible
+    # Rebalance rows if possible
 
     return rows
 
