@@ -6,7 +6,7 @@ from typing import ClassVar, Iterable
 @dataclass
 class MallRow:
     MAX_LANES: ClassVar[int] = 8
-    MAX_RECIPES: ClassVar[int] = 12
+    MAX_RECIPES: ClassVar[int] = 10
 
     class Side(Enum):
         TOP = "top"

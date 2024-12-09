@@ -1,5 +1,6 @@
 import re
 from collections import deque
+from itertools import chain
 
 
 def load_recipes():
@@ -32,6 +33,20 @@ def load_recipes():
                 attribute, value = re.match(ATTRIBUTE, line).groups()
                 ingredient[attribute] = value
     return recipes
+
+
+def get_recipe_ingredients(recipe: str) -> tuple[str]:
+    # Exclude these because I'm just going to position one recipe that requires either of these per rowside,
+    # right next to the bus so that I don't have to extend a lane specifically for that recipe down the row
+    exclude = {"stone", "stone-brick"}
+
+    if recipe not in recipes or recipe in intermediates:
+        return_var = {recipe}
+    else:
+        iterator = (get_recipe_ingredients(ingredient) for ingredient in recipes[recipe])
+        return_var = set(chain.from_iterable(iterator))
+
+    return tuple(sorted(return_var - exclude))
 
 
 recipes = load_recipes()

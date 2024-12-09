@@ -3,28 +3,9 @@
 # /c local list = {} for _, recipe in pairs(game.player.force.recipes) do list[#list+1] = {recipe.name,{recipe.ingredients}} end helpers.write_file("recipes.txt", serpent.block(list))
 
 from collections import defaultdict
-from itertools import chain
 
-from loader import exclusive_products, intermediates, products, recipes
 from mallrow import MallRow
-
-
-def initial_lanes() -> list[MallRow]:
-    return
-
-
-def get_ingredients_key(recipe: str) -> tuple[str]:
-    # Exclude these because I'm just going to position one recipe that requires either of these per rowside,
-    # right next to the bus so that I don't have to extend a lane specifically for that recipe down the row
-    exclude = {"stone", "stone-brick"}
-
-    if recipe not in recipes or recipe in intermediates:
-        return_var = {recipe}
-    else:
-        iterator = (get_ingredients_key(ingredient) for ingredient in recipes[recipe])
-        return_var = set(chain.from_iterable(iterator))
-
-    return tuple(sorted(return_var - exclude))
+from recipes import exclusive_products, get_recipe_ingredients, products, recipes
 
 
 def find_best_ingredients(
@@ -38,7 +19,7 @@ def find_best_ingredients(
     reduced_ingredients = defaultdict(list)
 
     for recipe in pending_assignment:
-        reduced = tuple(sorted(set(get_ingredients_key(recipe)) - set(row.get_ingredients(side))))
+        reduced = tuple(sorted(set(get_recipe_ingredients(recipe)) - set(row.get_ingredients(side))))
         existing_ingredients_used = len(recipes[recipe]) - len(reduced)
 
         if (
@@ -77,9 +58,10 @@ def sort_ingredients(
 
 
 def build_rows() -> dict:
-    rows = [MallRow(ingredient_lanes=["iron-plate", None, "iron-gear-wheel", "electronic-circuit"])]
-    # rows = []
+    rows = []
     pending_assignment = set(products)
+    for row in rows:
+        pending_assignment -= set(row.recipes_top + row.recipes_bot)
 
     while pending_assignment:
         sorted_ingredients = sort_ingredients(pending_assignment, rows)
@@ -96,8 +78,6 @@ def build_rows() -> dict:
                 pending_assignment.remove(recipe)
         else:
             rows.append(MallRow())
-
-    # Rebalance rows if possible
 
     return rows
 

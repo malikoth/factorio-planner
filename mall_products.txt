@@ -13,7 +13,7 @@ electric-mining-drill
 # express-splitter
 # express-transport-belt
 # express-underground-belt
-# fast-inserter
+fast-inserter
 # fast-splitter
 # fast-transport-belt
 # fast-underground-belt
@@ -46,7 +46,7 @@ small-lamp
 # splitter
 steel-chest
 steel-furnace
-# stone-furnace
+stone-furnace
 stone-wall
 train-stop
 # transport-belt

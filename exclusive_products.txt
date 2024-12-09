@@ -4,3 +4,4 @@ steel-furnace
 electric-furnace
 oil-refinery
 stone-wall
+stone-furnace
